@@ -129,6 +129,29 @@
                 // GeoJSONレイヤに地図がフィットするように表示範囲を自動調整
                 map.fitBounds(selected_area.getBounds());
             });
+            // --- 堺市 指定避難所データの追加 ---
+const shelterMarkers = L.markerClusterGroup(); // クラスタリング用のグループ作成
+
+fetch('./sakai_shelters.geojson') // 取得したGeoJSONファイル名
+    .then((res) => res.json())
+    .then((json) => {
+        const shelterLayer = L.geoJSON(json, {
+            onEachFeature: (feature, layer) => {
+                // ポップアップに避難所名と種別を表示
+                const name = feature.properties.P34_003 || "名称不明";
+                const type = feature.properties.P34_004 || "不明";
+                layer.bindPopup(`<strong>避難所: ${name}</strong><br>種別: ${type}`);
+            }
+        });
+        shelterMarkers.addLayer(shelterLayer);
+        map.addLayer(shelterMarkers);
+        
+        // レイヤーコントロールにチェックボックスを追加
+        LayerControl.addOverlay(shelterMarkers, "指定避難所（堺市）");
+    })
+map.attributionControl.addAttribution(
+    '<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-P34-v3_0.html">国土数値情報 - 指定緊急避難場所データ</a>'
+);
     </script>
 </body>
 
