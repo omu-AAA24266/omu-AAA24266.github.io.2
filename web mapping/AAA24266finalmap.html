@@ -129,30 +129,38 @@
                 // GeoJSONレイヤに地図がフィットするように表示範囲を自動調整
                 map.fitBounds(selected_area.getBounds());
             });
-            // --- 堺市 指定避難所データの追加 ---
+           // --- 堺市 指定避難所データの追加 ---
 const shelterMarkers = L.markerClusterGroup(); // クラスタリング用のグループ作成
 
 fetch('./sakai_shelters.geojson') // 取得したGeoJSONファイル名
-    .then((res) => res.json())
+    .then((res) => {
+        if (!res.ok) throw new Error('ファイルが見つかりません');
+        return res.json();
+    })
     .then((json) => {
-    const shelterLayer = L.geoJSON(json, {
-    coordsToLatLng: function (coords) {
-        return new L.LatLng(coords[0], coords[1]); 
-    },
-    onEachFeature: (feature, layer) => {
-        layer.bindPopup(feature.properties.P34_003 || "避難所");
-    }
-});
+        const shelterLayer = L.geoJSON(json, {
+            // 座標が逆（[緯度, 経度]の順）になっている場合の補正
+            coordsToLatLng: function (coords) {
+                return new L.LatLng(coords[0], coords[1]); 
+            },
+            // ポップアップの設定
             onEachFeature: (feature, layer) => {
                 const name = feature.properties.P34_003 || "名称不明";
                 const type = feature.properties.P34_004 || "不明";
                 layer.bindPopup(`<strong>避難所: ${name}</strong><br>種別: ${type}`);
             }
         });
+        
         shelterMarkers.addLayer(shelterLayer);
         map.addLayer(shelterMarkers);
-        LayerControl.addOverlay(shelterMarkers, "指定避難所（堺市）");
-    
+        
+        // レイヤーコントロールにチェックボックスを追加
+        if (typeof LayerControl !== 'undefined') {
+            LayerControl.addOverlay(shelterMarkers, "指定避難所（堺市）");
+        }
+    })
+    .catch((err) => console.error('避難所データの読み込みエラー:', err));
+
 map.attributionControl.addAttribution(
     '<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-P34-v3_0.html">国土数値情報 - 指定緊急避難場所データ</a>'
 );
